@@ -1,4 +1,5 @@
 # main.py
+# USE TT.PY! THIS IS A PLACEHOLDER.
 import sys
 from datetime import datetime, timedelta
 from PyQt6.QtWidgets import (QApplication, QWidgetAction, QMainWindow, QTabWidget, QWidget, QSystemTrayIcon, QMenu,

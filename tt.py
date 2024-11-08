@@ -1,6 +1,8 @@
 # main.py
 import sys
 import pickle
+import json
+import os
 from datetime import datetime, timedelta
 from PyQt6.QtWidgets import (QApplication, QWidgetAction, QMainWindow, QTabWidget, QWidget, QSystemTrayIcon, QMenu,
                            QVBoxLayout, QPushButton, QLabel, QLineEdit, QTextEdit,
@@ -121,13 +123,16 @@ class TimeTracker(QMainWindow):
         self.clock_tab = self.create_clock_tab()
         self.task_list_tab = self.create_task_list_tab()
         self.track_tasks_tab = self.create_track_tasks_tab()
+        self.todo_tab = self.create_todo_tab()
         self.notepad_tab = self.create_notepad_tab()
         
         # Add tabs to widget
         self.tabs.addTab(self.clock_tab, "Clock In/Out")
         self.tabs.addTab(self.task_list_tab, "Task List")
         self.tabs.addTab(self.track_tasks_tab, "Track Tasks")
+        self.tabs.addTab(self.todo_tab, "To Do List")
         self.tabs.addTab(self.notepad_tab, "Scratch Pad")
+        
         
         # Disable tabs initially
         self.task_list_tab.setEnabled(False)
@@ -149,6 +154,8 @@ class TimeTracker(QMainWindow):
         restore_action.triggered.connect(self.restore_window)
         tray_menu.addAction(restore_action)
 
+        tray_menu.addSeparator()
+        
         # Add "Exit" action to the menu
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close_application)
@@ -416,6 +423,88 @@ class TimeTracker(QMainWindow):
             # Highlight the selected task in the task list
             self.task_list.setCurrentItem(current)
 
+   
+    def create_todo_tab(self):
+        # Create main widget and layout
+        tab = QWidget()
+        main_layout = QVBoxLayout()
+        
+        # Create input area
+        input_layout = QHBoxLayout()
+        
+        # Create and configure todo input field
+        self.todo_input = QLineEdit()
+        self.todo_input.setPlaceholderText("Enter a new todo item...")
+        self.todo_input.returnPressed.connect(self.add_todoitem)
+        
+        # Create Add button
+        add_button = QPushButton("Add Item")
+        add_button.clicked.connect(self.add_todoitem)
+        
+        # Add widgets to input layout
+        input_layout.addWidget(self.todo_input)
+        input_layout.addWidget(add_button)
+        
+        # Create list widget for todo items
+        self.todo_list = QListWidget()
+        
+        # Create Remove button
+        remove_button = QPushButton("Remove Selected Item")
+        remove_button.clicked.connect(self.remove_todoitem)
+        
+        # Add all components to main layout
+        main_layout.addLayout(input_layout)
+        main_layout.addWidget(self.todo_list)
+        main_layout.addWidget(remove_button)
+        
+        # Set the layout for the tab
+        tab.setLayout(main_layout)
+        
+        # Load saved items when creating the tab
+        self.load_todoitems()
+        
+        return tab
+
+    def add_todoitem(self):
+        todoitem_text = self.todo_input.text().strip()
+        if todoitem_text:
+            self.todo_list.addItem(todoitem_text)
+            self.todo_input.clear()
+            self.save_todoitems()
+
+    def remove_todoitem(self):
+        current_item = self.todo_list.currentItem()
+        if current_item:
+            self.todo_list.takeItem(self.todo_list.row(current_item))
+            self.save_todoitems()
+
+    def save_todoitems(self):
+        """Save todo items to a JSON file"""
+        items = []
+        for i in range(self.todo_list.count()):
+            items.append(self.todo_list.item(i).text())
+        
+        # Create data directory if it doesn't exist
+        os.makedirs('data', exist_ok=True)
+        
+        # Save to JSON file
+        with open('data/todoitems.json', 'w') as f:
+            json.dump(items, f)
+
+    def load_todoitems(self):
+        """Load todo items from JSON file"""
+        try:
+            # Check if file exists
+            if os.path.exists('data/todoitems.json'):
+                with open('data/todoitems.json', 'r') as f:
+                    items = json.load(f)
+                    
+                # Add items to the list widget
+                for item in items:
+                    self.todo_list.addItem(item)
+        except Exception as e:
+            print(f"Error loading todo items: {e}")
+    
     def create_notepad_tab(self):
         tab = QWidget()
         layout = QVBoxLayout()
@@ -430,7 +519,7 @@ class TimeTracker(QMainWindow):
 
     def load_tasks(self):
         try:
-            with open('tasks.pkl', 'rb') as f:
+            with open('data/tasks.pkl', 'rb') as f:
                 loaded_tasks = pickle.load(f)
                 print(f"Loaded tasks: {loaded_tasks}")  # Debug: Print loaded tasks
                 self.tasks = loaded_tasks
@@ -455,7 +544,7 @@ class TimeTracker(QMainWindow):
 
     def save_tasks(self):
         try:
-            with open('tasks.pkl', 'wb') as f:
+            with open('data/tasks.pkl', 'wb') as f:
                 pickle.dump(self.tasks, f)
                 print("Tasks saved successfully.")
         except Exception as e:
@@ -464,6 +553,8 @@ class TimeTracker(QMainWindow):
     def closeEvent(self, event):
         self.save_tasks()
         event.accept()
+        self.save_todoitems()
+        super().closeEvent(event)
         print("App closed. Tasks saved.")
 
 if __name__ == '__main__':

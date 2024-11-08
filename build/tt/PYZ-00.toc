@@ -1,4 +1,4 @@
-('D:\\py\\wdv-timeclock\\build\\tt\\PYZ-00.pyz',
+('D:\\py-git\\timetracker\\build\\tt\\PYZ-00.pyz',
  [('PyQt6',
    'd:\\py\\wdv-timeclock\\.venv\\Lib\\site-packages\\PyQt6\\__init__.py',
    'PYMODULE'),
