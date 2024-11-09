@@ -328,10 +328,12 @@ class TimeTracker(QMainWindow):
             self.update_task_displays()
             self.task_input.clear()
             self.hours_input.setValue(1)
+            self.save_tasks()
 
     def delete_task(self, task):
         # Remove the task from the list of tasks
         self.tasks.remove(task)
+        self.save_tasks()
         
         # Remove the corresponding task widget from the layout
         for i, widget in enumerate(self.task_widgets):
@@ -407,17 +409,20 @@ class TimeTracker(QMainWindow):
             self.active_task = None
         
         self.update_task_displays()
+        
 
     def stop_task(self, task):
         task.is_running = False
         self.active_task = None
         self.update_task_displays()
+        self.save_tasks()
 
     def reset_task(self, task):
         if task.is_running:
             self.stop_task(task)
         task.elapsed_time = timedelta()
         self.update_task_displays()
+        self.save_tasks()
     
     def select_task(self, current, previous):
         if current:
@@ -472,12 +477,17 @@ class TimeTracker(QMainWindow):
             self.todo_list.addItem(todoitem_text)
             self.todo_input.clear()
             self.save_todoitems()
+            self.save_tasks()
+            self.save_text()
+            
 
     def remove_todoitem(self):
         current_item = self.todo_list.currentItem()
         if current_item:
             self.todo_list.takeItem(self.todo_list.row(current_item))
             self.save_todoitems()
+            self.save_tasks()
+            self.save_text()
 
     def save_todoitems(self):
         """Save todo items to a JSON file"""
@@ -510,13 +520,13 @@ class TimeTracker(QMainWindow):
         tab = QWidget()
         layout = QVBoxLayout()
         
-        #
+        
         self.notepad = QTextEdit()
         self.notepad.setAcceptRichText(False)
         #self.notepad.setStyleSheet("font-size: 10pt;background-color: black;color: white;")
         self.notepad.setStyleSheet("font-family: 'Courier New'; font-size: 10pt; background-color: black; color: white;")
         self.load_text()
-        self.notepad.textChanged.connect(self.save_text)
+        #self.notepad.textChanged.connect(self.save_text)
 
         #self.notepad.setReadOnly(True)
         layout.addWidget(self.notepad)
@@ -528,6 +538,7 @@ class TimeTracker(QMainWindow):
         text = self.notepad.toPlainText()
         with open("data/scratchpad_content.txt", "w") as file:
             file.write(text)  
+            print("Text saved successfully.")
 
     def load_text(self):
         if os.path.exists("data/scratchpad_content.txt"):
@@ -570,18 +581,22 @@ class TimeTracker(QMainWindow):
             print(f"Error loading tasks: {str(e)}")
 
     def save_tasks(self):
+        self.save_text()
         try:
             with open('data/tasks.pkl', 'wb') as f:
-                pickle.dump(self.tasks, f)
+                pickle.dump(self.tasks, f)                
                 print("Tasks saved successfully.")
         except Exception as e:
             print(f"Error saving tasks: {str(e)}")
 
     def closeEvent(self, event):
         self.save_tasks()
+        self.save_text()
         event.accept()
         self.save_todoitems()
         super().closeEvent(event)
+        
+        print("Text SAVED successfully.")
         print("App closed. Tasks saved.")
 
 if __name__ == '__main__':
