@@ -8,9 +8,10 @@ from PyQt6.QtWidgets import (QApplication, QWidgetAction, QMainWindow, QTabWidge
                            QVBoxLayout, QPushButton, QLabel, QLineEdit, QTextEdit,
                            QProgressBar, QListWidget, QHBoxLayout, QMessageBox,
                            QDoubleSpinBox, QFrame, QScrollArea)
-from PyQt6.QtCore import QTimer, Qt, QEvent
+from PyQt6.QtCore import QTimer, Qt, QEvent, pyqtSlot
 from PyQt6.QtGui import QIcon, QCloseEvent
 from PyQt6.QtGui import QAction
+
 
 class Task:
     def __init__(self, name, expected_hours, elapsed_time=timedelta(), is_running=False):
@@ -511,11 +512,37 @@ class TimeTracker(QMainWindow):
         
         #
         self.notepad = QTextEdit()
-        self.notepad.setStyleSheet("font-size: 10pt;background-color: black;color: white;")
+        self.notepad.setAcceptRichText(False)
+        #self.notepad.setStyleSheet("font-size: 10pt;background-color: black;color: white;")
+        self.notepad.setStyleSheet("font-family: 'Courier New'; font-size: 10pt; background-color: black; color: white;")
+        self.load_text()
+        self.notepad.textChanged.connect(self.save_text)
+
         #self.notepad.setReadOnly(True)
         layout.addWidget(self.notepad)
         tab.setLayout(layout)
         return tab
+
+    @pyqtSlot()
+    def save_text(self):
+        text = self.notepad.toPlainText()
+        with open("data/scratchpad_content.txt", "w") as file:
+            file.write(text)  
+
+    def load_text(self):
+        if os.path.exists("data/scratchpad_content.txt"):
+            try:
+                with open("data/scratchpad_content.txt", "r", encoding='utf-8') as file:
+                    text = file.read()
+                    self.notepad.setPlainText(text)
+                print("Text loaded successfully.")
+            except Exception as e:
+                print(f"Error loading text: {e}")
+        else:
+            # Optionally, initialize with empty text or some default text
+            self.notepad.setPlainText("")
+            print("No existing text found. Starting with empty notepad.")
+
 
     def load_tasks(self):
         try:
