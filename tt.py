@@ -197,8 +197,10 @@ class TimeTracker(QMainWindow):
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             if self.isVisible():
                 self.hide()
+                self.save_text()
             else:
                 self.restore_window()
+                self.save_text()
 
  
 
@@ -297,6 +299,7 @@ class TimeTracker(QMainWindow):
             self.clock_status.setText("Clocked in")
             self.task_list_tab.setEnabled(True)
             self.track_tasks_tab.setEnabled(True)
+            self.save_text()
         else:  # Clock out
             self.clock_in_time = None
             self.clock_button.setText("Clock In")
@@ -304,10 +307,12 @@ class TimeTracker(QMainWindow):
             self.clock_status.setText("Not clocked in")
             self.task_list_tab.setEnabled(False)
             self.track_tasks_tab.setEnabled(False)
+            self.save_text()
             # Stop all running tasks
             for task in self.tasks:
                 if task.is_running:
                     self.stop_task(task)
+                    self.save_text()
 
     def add_task(self):
         name = self.task_input.text()
@@ -329,11 +334,13 @@ class TimeTracker(QMainWindow):
             self.task_input.clear()
             self.hours_input.setValue(1)
             self.save_tasks()
+            self.save_text()
 
     def delete_task(self, task):
         # Remove the task from the list of tasks
         self.tasks.remove(task)
         self.save_tasks()
+        self.save_text()
         
         # Remove the corresponding task widget from the layout
         for i, widget in enumerate(self.task_widgets):
