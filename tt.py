@@ -4,18 +4,22 @@ import pickle
 import json
 import os
 from datetime import datetime, timedelta
+from collections import defaultdict
+from datetime import datetime, timedelta
 from PyQt6.QtWidgets import (QApplication, QWidgetAction, QMainWindow, QTabWidget, QWidget, QSystemTrayIcon, QMenu,
                            QVBoxLayout, QPushButton, QLabel, QLineEdit, QTextEdit,
-                           QProgressBar, QListWidget, QHBoxLayout, QMessageBox,
-                           QDoubleSpinBox, QFrame, QScrollArea)
+                           QProgressBar, QListWidget, QHBoxLayout, QMessageBox, QListWidgetItem,
+                           QDoubleSpinBox, QFrame, QScrollArea, QGroupBox)
 from PyQt6.QtCore import QTimer, Qt, QEvent, pyqtSlot
-from PyQt6.QtGui import QIcon, QCloseEvent
+from PyQt6.QtGui import QIcon, QCloseEvent, QColor, QFont
 from PyQt6.QtGui import QAction
 
 
 class Task:
     def __init__(self, name, expected_hours, elapsed_time=timedelta(), is_running=False):
         self.name = name
+        self.clock_events = []
+        #self.load_clock_history()  # Load history at startup
         self.expected_hours = expected_hours
         self.elapsed_time = elapsed_time
         self.timer = None
@@ -95,10 +99,33 @@ class TaskWidget(QFrame):
         self.status_label.setText("Running" if self.task.is_running else "Stopped")
         self.status_label.setStyleSheet("color: green;" if self.task.is_running else "color: gray;")
 
+
+class ClockEvent:
+    def __init__(self, event_type, timestamp, duration=None):
+        self.event_type = event_type  # "in" or "out"
+        self.timestamp = timestamp
+        self.duration = duration
+
+    def to_dict(self):
+        return {
+            'event_type': self.event_type,
+            'timestamp': self.timestamp.isoformat(),
+            'duration': self.duration.total_seconds() if self.duration else None
+        }
+
+    @staticmethod
+    def from_dict(data):
+        duration = timedelta(seconds=data['duration']) if data['duration'] is not None else None
+        return ClockEvent(
+            data['event_type'],
+            datetime.fromisoformat(data['timestamp']),
+            duration
+        )
+
 class TimeTracker(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Time Tracker | v0.03 Alpha Test Version")
+        self.setWindowTitle("Time Tracker v20241121 Beta")
         self.setGeometry(100, 100, 800, 600)
 
 
@@ -173,6 +200,12 @@ class TimeTracker(QMainWindow):
 
         # Load saved tasks
         self.load_tasks()
+        self.load_clock_history()
+
+        # Auto save scratch patch every 60 seconds
+        self.timer2 = QTimer(self)
+        self.timer2.timeout.connect(self.save_text)  # Connect the timeout signal to the method
+        self.timer2.start(60000)  # Trigger every 60000 milliseconds (1 minute)
 
 
     def changeEvent(self, event):
@@ -202,12 +235,11 @@ class TimeTracker(QMainWindow):
                 self.restore_window()
                 self.save_text()
 
- 
-
     def create_clock_tab(self):
         tab = QWidget()
         layout = QVBoxLayout()
         
+        # Existing clock controls
         self.clock_button = QPushButton("Clock In")
         self.clock_button.clicked.connect(self.toggle_clock)
         
@@ -216,14 +248,129 @@ class TimeTracker(QMainWindow):
         self.total_time_label = QLabel("Total clocked time: 0:00:00")
         self.expected_time_label = QLabel("Total Estimated hours: 0:00:00")
         
+        # Daily summary section
+        summary_group = QGroupBox("Daily Summary")
+        summary_layout = QVBoxLayout()
+        self.daily_summary_label = QLabel()
+        self.daily_summary_label.setWordWrap(True)
+        summary_layout.addWidget(self.daily_summary_label)
+        summary_group.setLayout(summary_layout)
+        
+        # History section
+        history_group = QGroupBox("Clock History")
+        history_layout = QVBoxLayout()
+        
+        self.clock_history = QListWidget()
+        self.clock_history.setAlternatingRowColors(True)
+        self.clock_history.setMinimumHeight(150)
+        
+        # Clear history button
+        clear_button = QPushButton("Clear History")
+        clear_button.clicked.connect(self.clear_history)
+        
+        history_layout.addWidget(self.clock_history)
+        history_layout.addWidget(clear_button)
+        history_group.setLayout(history_layout)
+        
+        # Add all widgets to main layout
         layout.addWidget(self.clock_button)
         layout.addWidget(self.clock_status)
         layout.addWidget(self.total_time_label)
         layout.addWidget(self.expected_time_label)
+        layout.addWidget(summary_group)
+        layout.addWidget(history_group)
         layout.addStretch()
         
         tab.setLayout(layout)
+        
+        # Initialize history from saved data
+        self.clock_events = []
+        self.load_clock_history()
+        self.update_daily_summary()
+        
         return tab
+
+    def save_clock_history(self):
+        history_data = {
+            'events': [event.to_dict() for event in self.clock_events]
+        }
+        try:
+            with open('clock_history.json', 'w') as f:
+                json.dump(history_data, f, indent=2)
+        except Exception as e:
+            print(f"Error saving clock history: {e}")
+
+
+    def load_clock_history(self):
+        try:
+            with open('clock_history.json', 'r') as f:
+                history_data = json.load(f)
+                self.clock_events = [ClockEvent.from_dict(event_data) 
+                                for event_data in history_data['events']]
+                
+                # Check if there was an incomplete clock-in (app closed while clocked in)
+                last_event = self.clock_events[-1] if self.clock_events else None
+                if last_event and last_event.event_type == 'in':
+                    # Handle incomplete clock-in by adding a clock-out event
+                    current_time = datetime.now()
+                    duration = current_time - last_event.timestamp
+                    out_event = ClockEvent('out', current_time, duration)
+                    self.clock_events.append(out_event)
+                    self.save_clock_history()  # Save the added clock-out event
+                    
+        except FileNotFoundError:
+            self.clock_events = []
+        except Exception as e:
+            print(f"Error loading clock history: {e}")
+            self.clock_events = []
+
+    def clear_history(self):
+        reply = QMessageBox.question(
+            self,
+            'Clear History',
+            'Are you sure you want to clear the clock history?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.clock_events = []
+            self.clock_history.clear()
+            self.save_clock_history()
+            self.update_daily_summary()
+
+    def refresh_history_display(self):
+        self.clock_history.clear()
+        for event in reversed(self.clock_events):  # Show most recent first
+            text = f"Clocked {event.event_type.upper()} - {event.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+            if event.duration:
+                text += f" (Duration: {str(event.duration).split('.')[0]})"
+            
+            item = QListWidgetItem(text)
+            item.setForeground(QColor('green' if event.event_type == 'in' else 'red'))
+            self.clock_history.addItem(item)
+
+    def update_daily_summary(self):
+        # Group events by date and calculate total time
+        daily_totals = defaultdict(timedelta)
+        current_date = datetime.now().date()
+        
+        for i in range(len(self.clock_events)):
+            event = self.clock_events[i]
+            if event.event_type == 'out' and event.duration:
+                event_date = event.timestamp.date()
+                daily_totals[event_date] += event.duration
+        
+        # Create summary text
+        summary_text = "Daily Totals:\n"
+        for date, total_time in sorted(daily_totals.items(), reverse=True)[:7]:  # Show last 7 days
+            date_str = date.strftime('%Y-%m-%d')
+            if date == current_date:
+                date_str += " (Today)"
+            hours = total_time.total_seconds() / 3600
+            summary_text += f"{date_str}: {hours:.2f} hours\n"
+        
+        self.daily_summary_label.setText(summary_text)
 
     def create_task_list_tab(self):
         tab = QWidget()
@@ -269,8 +416,15 @@ class TimeTracker(QMainWindow):
         summary_layout = QVBoxLayout()
         
         self.total_tracked_time = QLabel("Total tracked time: 0:00:00")
-        self.active_task_label = QLabel("Current active task: None")
         
+        self.active_task_label = QLabel("Current active task: None")
+        font = self.active_task_label.font()
+        font.setBold(True)
+        font.setPointSize(16)  # Set the font size to 16 points
+        self.active_task_label.setFont(font)
+        
+
+        self.active_task_label.setFont(font)
         summary_layout.addWidget(self.total_tracked_time)
         summary_layout.addWidget(self.active_task_label)
         self.summary_frame.setLayout(summary_layout)
@@ -292,27 +446,46 @@ class TimeTracker(QMainWindow):
         return tab
 
     def toggle_clock(self):
+        current_time = datetime.now()
+        
         if not self.clock_in_time:  # Clock in
-            self.clock_in_time = datetime.now()
+            self.clock_in_time = current_time
             self.clock_button.setText("Clock Out")
             self.clock_status.setStyleSheet("font-weight: bold;")
             self.clock_status.setText("Clocked in")
             self.task_list_tab.setEnabled(True)
             self.track_tasks_tab.setEnabled(True)
-            self.save_text()
+            
+            # Add clock-in event
+            
+            event = ClockEvent('in', current_time)
+            self.clock_events.append(event)
+            self.refresh_history_display()
+            self.update_daily_summary()
+            self.save_clock_history()
+            
         else:  # Clock out
+            duration = current_time - self.clock_in_time
             self.clock_in_time = None
             self.clock_button.setText("Clock In")
             self.clock_status.setStyleSheet("font-weight: bold;")
             self.clock_status.setText("Not clocked in")
             self.task_list_tab.setEnabled(False)
             self.track_tasks_tab.setEnabled(False)
-            self.save_text()
+            
+            # Add clock-out event
+            event = ClockEvent('out', current_time, duration)
+            self.clock_events.append(event)
+            
             # Stop all running tasks
             for task in self.tasks:
                 if task.is_running:
                     self.stop_task(task)
-                    self.save_text()
+        
+        self.refresh_history_display()
+        self.update_daily_summary()
+        self.save_clock_history()
+        self.save_text()
 
     def add_task(self):
         name = self.task_input.text()
@@ -530,8 +703,8 @@ class TimeTracker(QMainWindow):
         
         self.notepad = QTextEdit()
         self.notepad.setAcceptRichText(False)
-        #self.notepad.setStyleSheet("font-size: 10pt;background-color: black;color: white;")
-        self.notepad.setStyleSheet("font-family: 'Courier New'; font-size: 10pt; background-color: black; color: white;")
+        #self.notepad.setStyleSheet("font-size: 10pt;background-color: grey;color: black;")
+        self.notepad.setStyleSheet("font-family: 'Courier New'; font-size: 12pt; background-color: blue; color: white;")
         self.load_text()
         #self.notepad.textChanged.connect(self.save_text)
 

@@ -1,0 +1,19 @@
+{
+  "events": [
+    {
+      "event_type": "in",
+      "timestamp": "2024-11-21T17:30:32.091189",
+      "duration": null
+    },
+    {
+      "event_type": "out",
+      "timestamp": "2024-11-21T17:30:35.706869",
+      "duration": "0:00:03.615680"
+    },
+    {
+      "event_type": "in",
+      "timestamp": "2024-11-21T17:30:37.043408",
+      "duration": null
+    }
+  ]
+}

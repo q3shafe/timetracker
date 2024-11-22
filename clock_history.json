@@ -1,0 +1,84 @@
+{
+  "events": [
+    {
+      "event_type": "in",
+      "timestamp": "2024-11-21T17:35:23.810932",
+      "duration": null
+    },
+    {
+      "event_type": "out",
+      "timestamp": "2024-11-21T17:35:26.555549",
+      "duration": 2.744617
+    },
+    {
+      "event_type": "in",
+      "timestamp": "2024-11-21T17:35:27.843868",
+      "duration": null
+    },
+    {
+      "event_type": "out",
+      "timestamp": "2024-11-21T17:35:28.739448",
+      "duration": 0.89558
+    },
+    {
+      "event_type": "in",
+      "timestamp": "2024-11-21T20:54:11.246939",
+      "duration": null
+    },
+    {
+      "event_type": "out",
+      "timestamp": "2024-11-21T20:54:43.283404",
+      "duration": 32.036465
+    },
+    {
+      "event_type": "in",
+      "timestamp": "2024-11-21T20:54:48.527979",
+      "duration": null
+    },
+    {
+      "event_type": "out",
+      "timestamp": "2024-11-21T20:55:30.056381",
+      "duration": 41.528402
+    },
+    {
+      "event_type": "in",
+      "timestamp": "2024-11-21T20:55:31.959370",
+      "duration": null
+    },
+    {
+      "event_type": "out",
+      "timestamp": "2024-11-21T20:55:47.750807",
+      "duration": 15.791437
+    },
+    {
+      "event_type": "in",
+      "timestamp": "2024-11-21T21:06:07.286660",
+      "duration": null
+    },
+    {
+      "event_type": "out",
+      "timestamp": "2024-11-21T21:06:41.207023",
+      "duration": 33.920363
+    },
+    {
+      "event_type": "in",
+      "timestamp": "2024-11-21T21:06:52.526911",
+      "duration": null
+    },
+    {
+      "event_type": "out",
+      "timestamp": "2024-11-21T21:08:05.246689",
+      "duration": 72.719778
+    },
+    {
+      "event_type": "in",
+      "timestamp": "2024-11-21T21:08:12.903105",
+      "duration": null
+    },
+    {
+      "event_type": "out",
+      "timestamp": "2024-11-21T21:08:17.078287",
+      "duration": 4.175182
+    }
+  ]
+}
