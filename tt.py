@@ -183,7 +183,10 @@ class TimeTracker(QMainWindow):
         tray_menu.addAction(restore_action)
 
         tray_menu.addSeparator()
+        restore_action = QAction("Restore", self)
         
+        tray_menu.addSeparator()
+
         # Add "Exit" action to the menu
         exit_action = QAction("Exit", self)
         exit_action.triggered.connect(self.close_application)

@@ -1,0 +1,34 @@
+{
+  "events": [
+    {
+      "event_type": "in",
+      "timestamp": "2024-12-01T13:12:14.932378",
+      "duration": null
+    },
+    {
+      "event_type": "out",
+      "timestamp": "2024-12-01T13:12:19.969631",
+      "duration": 5.037253
+    },
+    {
+      "event_type": "in",
+      "timestamp": "2024-12-01T13:12:32.714863",
+      "duration": null
+    },
+    {
+      "event_type": "out",
+      "timestamp": "2024-12-01T13:13:08.584509",
+      "duration": 35.869646
+    },
+    {
+      "event_type": "in",
+      "timestamp": "2024-12-01T13:13:31.275773",
+      "duration": null
+    },
+    {
+      "event_type": "out",
+      "timestamp": "2024-12-01T13:13:36.371087",
+      "duration": 5.095314
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "WDV Timetracker"
-#define MyAppVersion "0.0.3 A;[ja"
+#define MyAppVersion "20241121"
 #define MyAppPublisher "WeDoVids"
 #define MyAppURL "https://brian.wedovids.com"
 #define MyAppExeName "TimeTracker.exe"
